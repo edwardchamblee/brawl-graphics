@@ -212,7 +212,9 @@ def decode_rgba(texture: SctxTexture, level: int = 0):
         array = array.reshape(height, width, 4)[..., [2, 1, 0, 3]]
         return Image.fromarray(np.ascontiguousarray(array), "RGBA")
     if raw == "RGB8":
-        return Image.frombytes("RGB", (width, height), payload[: width * height * 3]).convert("RGBA")
+        return Image.frombytes("RGB", (width, height), payload[: width * height * 3]).convert(
+            "RGBA"
+        )
     if raw == "L8":
         return Image.frombytes("L", (width, height), payload[: width * height]).convert("RGBA")
     if raw == "A8":

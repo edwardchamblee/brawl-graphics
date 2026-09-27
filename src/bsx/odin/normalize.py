@@ -108,7 +108,9 @@ def _assign_missing_skins(gltf: dict[str, Any]) -> None:
             index = ((primitive.get("extensions") or {}).get(ODIN) or {}).get("meshDataInfoIndex")
             if index is not None and index < len(infos):
                 for descriptor in infos[index].get("vertexDescriptors", []):
-                    if any(a.get("name") == "a_boneindex" for a in descriptor.get("attributes", [])):
+                    if any(
+                        a.get("name") == "a_boneindex" for a in descriptor.get("attributes", [])
+                    ):
                         return True
         return False
 

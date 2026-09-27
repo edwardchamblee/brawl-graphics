@@ -268,7 +268,9 @@ def _read_packed(gltf: dict, binary: bytes, descriptor: dict) -> OdinAnimation:
         frame_rate=float(descriptor.get("frameRate") or 30.0),
         first_frame=float(descriptor.get("firstFrame") or 0.0),
         last_frame=float(descriptor.get("lastFrame") or 0.0),
-        keyframe_count=int(descriptor.get("keyframeCount") or descriptor.get("keyframesCount") or 1),
+        keyframe_count=int(
+            descriptor.get("keyframeCount") or descriptor.get("keyframesCount") or 1
+        ),
         tracks=tracks,
     )
 
@@ -299,7 +301,7 @@ def _read_raw(gltf: dict, binary: bytes, descriptor: dict) -> OdinAnimation:
 
     tracks: list[NodeTrack] = []
     offset = 0
-    for node, count in zip(node_indices, per_node_frames):
+    for node, count in zip(node_indices, per_node_frames, strict=True):
         chunk = frames[offset : offset + count]
         offset += count
         tracks.append(
@@ -322,7 +324,9 @@ def _read_raw(gltf: dict, binary: bytes, descriptor: dict) -> OdinAnimation:
     )
 
 
-def read_animation(gltf: dict[str, Any], binary: bytes, descriptor: dict[str, Any]) -> OdinAnimation:
+def read_animation(
+    gltf: dict[str, Any], binary: bytes, descriptor: dict[str, Any]
+) -> OdinAnimation:
     """Decode the ``animation`` descriptor of the ``SC_odin_format`` extension."""
     if descriptor.get("packed") is not None:
         return _read_packed(gltf, binary, descriptor)

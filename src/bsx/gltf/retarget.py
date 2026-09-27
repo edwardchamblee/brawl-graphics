@@ -39,9 +39,11 @@ class RetargetedTrack:
 def _track_value(track: NodeTrack, path: str, frame: int) -> np.ndarray:
     values = track.channel(path)
     if len(values) == 0:
-        return {"translation": np.zeros(3), "rotation": np.array([0, 0, 0, 1.0]), "scale": np.ones(3)}[
-            path
-        ]
+        return {
+            "translation": np.zeros(3),
+            "rotation": np.array([0, 0, 0, 1.0]),
+            "scale": np.ones(3),
+        }[path]
     return values[min(frame, len(values) - 1)]
 
 
@@ -142,6 +144,18 @@ def retarget(
     return list(results.values()), unmatched
 
 
+def _track_channel(
+    track: NodeTrack, path: str, rest: np.ndarray, width: int, frame_count: int
+) -> np.ndarray:
+    if not track.animated.get(path):
+        return np.tile(rest.astype(np.float32), (frame_count, 1))
+    values = track.channel(path)
+    if len(values) < frame_count:
+        pad = np.repeat(values[-1:], frame_count - len(values), axis=0)
+        values = np.concatenate([values, pad])
+    return values[:frame_count].astype(np.float32).reshape(frame_count, width)
+
+
 def direct_tracks(nodes: list[dict[str, Any]], animation: OdinAnimation) -> list[RetargetedTrack]:
     """Use decoded tracks as-is on the rig they were authored for."""
     frame_count = animation.frame_count
@@ -150,22 +164,14 @@ def direct_tracks(nodes: list[dict[str, Any]], animation: OdinAnimation) -> list
         if not (0 <= track.node < len(nodes)):
             continue
         rest_t, rest_r, rest_s = node_trs(nodes[track.node])
-
-        def channel(path: str, rest: np.ndarray, width: int) -> np.ndarray:
-            if not track.animated.get(path):
-                return np.tile(rest.astype(np.float32), (frame_count, 1))
-            values = track.channel(path)
-            if len(values) < frame_count:
-                pad = np.repeat(values[-1:], frame_count - len(values), axis=0)
-                values = np.concatenate([values, pad])
-            return values[:frame_count].astype(np.float32).reshape(frame_count, width)
-
         results.append(
             RetargetedTrack(
                 node=track.node,
-                translation=channel("translation", rest_t, 3),
-                rotation=ensure_shortest_path(channel("rotation", rest_r, 4)),
-                scale=channel("scale", rest_s, 3),
+                translation=_track_channel(track, "translation", rest_t, 3, frame_count),
+                rotation=ensure_shortest_path(
+                    _track_channel(track, "rotation", rest_r, 4, frame_count)
+                ),
+                scale=_track_channel(track, "scale", rest_s, 3, frame_count),
             )
         )
     return results

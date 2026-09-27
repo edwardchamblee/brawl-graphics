@@ -11,7 +11,13 @@ import numpy as np
 
 from . import __version__
 from .glb import GlbDocument
-from .gltf.accessors import ARRAY_BUFFER, ELEMENT_ARRAY_BUFFER, BufferBuilder, buffer_view_bytes, read_accessor
+from .gltf.accessors import (
+    ARRAY_BUFFER,
+    ELEMENT_ARRAY_BUFFER,
+    BufferBuilder,
+    buffer_view_bytes,
+    read_accessor,
+)
 from .gltf.retarget import RetargetedTrack, direct_tracks, retarget
 from .gltf.transform import node_trs
 from .odin.animation import find_animation_descriptor, read_animation
@@ -21,7 +27,18 @@ from .textures.resolver import ResolvedTexture, TextureResolver
 
 log = logging.getLogger(__name__)
 
-NODE_KEYS = ("name", "children", "translation", "rotation", "scale", "matrix", "mesh", "skin", "camera", "extras")
+NODE_KEYS = (
+    "name",
+    "children",
+    "translation",
+    "rotation",
+    "scale",
+    "matrix",
+    "mesh",
+    "skin",
+    "camera",
+    "extras",
+)
 
 # Odin "uber" shader blend modes
 BLEND_OPAQUE = 4
@@ -160,7 +177,9 @@ class _Converter:
 
         vertex_count = min((len(a) for a in attributes.values()), default=0)
         if primitive.get("indices") is not None:
-            indices = read_accessor(self.source, self.source_binary, primitive["indices"]).reshape(-1)
+            indices = read_accessor(self.source, self.source_binary, primitive["indices"]).reshape(
+                -1
+            )
         else:
             indices = np.arange(vertex_count, dtype=np.uint32)
         indices = indices.astype(np.uint32)
@@ -169,7 +188,9 @@ class _Converter:
         return indices, attributes, key
 
     @staticmethod
-    def _apply_pretransform(attributes: dict[str, np.ndarray], matrix: list) -> dict[str, np.ndarray]:
+    def _apply_pretransform(
+        attributes: dict[str, np.ndarray], matrix: list
+    ) -> dict[str, np.ndarray]:
         m = np.asarray(matrix, dtype=np.float64)
         if m.shape != (4, 3):
             raise ValueError("inversePretransform must be a 4x3 matrix")
@@ -228,7 +249,8 @@ class _Converter:
                 accessor_sets[key] = (accessors, remap)
 
             out_primitives = []
-            for (indices, _, key), primitive in zip(decoded, mesh.get("primitives", [])):
+            primitives = mesh.get("primitives", [])
+            for (indices, _, key), primitive in zip(decoded, primitives, strict=True):
                 accessors, remap = accessor_sets[key]
                 remapped = remap[indices]
                 dtype = np.uint16 if remapped.size == 0 or remapped.max() < 65535 else np.uint32
@@ -285,7 +307,9 @@ class _Converter:
         self._texture_cache[key] = index
         return index
 
-    def _resolve_slot(self, textures: dict[str, Any], slots: tuple[str, ...]) -> ResolvedTexture | None:
+    def _resolve_slot(
+        self, textures: dict[str, Any], slots: tuple[str, ...]
+    ) -> ResolvedTexture | None:
         for slot in slots:
             override = self.options.texture_overrides.get(slot)
             if override is not None:
@@ -359,7 +383,9 @@ class _Converter:
 
     # ------------------------------------------------------------- animations
 
-    def _add_animation(self, name: str, tracks: list[RetargetedTrack], frame_rate: float, frame_count: int) -> None:
+    def _add_animation(
+        self, name: str, tracks: list[RetargetedTrack], frame_rate: float, frame_count: int
+    ) -> None:
         if frame_count == 0 or not tracks:
             self.warnings.append(f"animation {name!r} has no frames")
             return
@@ -376,7 +402,8 @@ class _Converter:
             node = self.out["nodes"][track.node]
             if track.node not in rest_cache:
                 rest_cache[track.node] = node_trs(node)
-            rest = dict(zip(("translation", "rotation", "scale"), rest_cache[track.node]))
+            rest_t, rest_r, rest_s = rest_cache[track.node]
+            rest = {"translation": rest_t, "rotation": rest_r, "scale": rest_s}
 
             for path in ("translation", "rotation", "scale"):
                 values = getattr(track, path).astype(np.float32)
@@ -430,11 +457,15 @@ class _Converter:
                 samplers.append(
                     {
                         "input": self.builder.add_accessor(
-                            read_accessor(self.source, self.source_binary, sampler["input"]).astype(np.float32),
+                            read_accessor(self.source, self.source_binary, sampler["input"]).astype(
+                                np.float32
+                            ),
                             min_max=True,
                         ),
                         "output": self.builder.add_accessor(
-                            read_accessor(self.source, self.source_binary, sampler["output"]).astype(np.float32)
+                            read_accessor(
+                                self.source, self.source_binary, sampler["output"]
+                            ).astype(np.float32)
                         ),
                         "interpolation": sampler.get("interpolation", "LINEAR"),
                     }
@@ -474,7 +505,16 @@ class _Converter:
     def finish(self) -> ConvertResult:
         binary = self.builder.finish()
         self.out["buffers"] = [{"byteLength": len(binary)}] if binary else []
-        for key in ("materials", "skins", "animations", "images", "textures", "samplers", "cameras", "extensionsUsed"):
+        for key in (
+            "materials",
+            "skins",
+            "animations",
+            "images",
+            "textures",
+            "samplers",
+            "cameras",
+            "extensionsUsed",
+        ):
             if not self.out[key]:
                 del self.out[key]
         if not self.out["accessors"]:

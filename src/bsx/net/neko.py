@@ -19,7 +19,10 @@ class NekoApiError(RuntimeError):
 
 
 def convert_sctx_to_png(
-    name: str, data: bytes, session: requests.Session | None = None, timeout: float = DEFAULT_TIMEOUT
+    name: str,
+    data: bytes,
+    session: requests.Session | None = None,
+    timeout: float = DEFAULT_TIMEOUT,
 ) -> bytes:
     session = session or requests.Session()
     try:
@@ -32,7 +35,9 @@ def convert_sctx_to_png(
     except requests.RequestException as exc:
         raise NekoApiError(f"texture conversion request failed: {exc}") from exc
     if response.status_code != 200:
-        raise NekoApiError(f"texture conversion failed (HTTP {response.status_code}): {response.text[:200]}")
+        raise NekoApiError(
+            f"texture conversion failed (HTTP {response.status_code}): {response.text[:200]}"
+        )
 
     reference = response.json()
     try:

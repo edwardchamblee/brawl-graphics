@@ -64,7 +64,11 @@ class AssetClient:
         return [GameServer(**item) for item in self._get(SERVERS_URL).json()]
 
     def versions(self, game: str = DEFAULT_GAME) -> list[GameVersion]:
-        params = {"type": "listVersions", "request": _request_string([], game, None), "compressed": "false"}
+        params = {
+            "type": "listVersions",
+            "request": _request_string([], game, None),
+            "compressed": "false",
+        }
         return [GameVersion(**item) for item in self._get(ASSETS_URL, params).json()]
 
     def search(
